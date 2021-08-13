@@ -19,9 +19,9 @@ router.post("/", async (req,res) => {
 router.post("/login", async (req,res) => {
     const { username, password } = req.body;
     const user = await Users.findOne({where: { username: username} });
-    if (!user) res.json({error: "User doesn't exist..."}); // if {error;}
+    if (!user) res.json({error: "User doesn't exist..."}); //if (something) res.json{error;}
     bcrypt.compare(password, user.password).then(async (match) => {
-        if (!match) res.json({error: "Wrong Password!"}) //if {error;}
+        if (!match) res.json({error: "Wrong Password!"}) //if (something) res.json{error;}
 
         const accessToken = sign({username: user.username}, "secret"); //replace 'secret' with a more secure "password"
         res.json({token: accessToken, username: username});
@@ -37,6 +37,20 @@ router.get("/basicinfo/:username", async (req,res) => {
 
 router.get('/auth', validateToken, (req,res) => {
     res.json(req.user);
+});
+
+router.put("/resetpassword", validateToken, async (req,res) => {
+    const {oldPassword, newPassword} = req.body;
+    const user = await Users.findOne({where: { username: req.user.username} });
+
+    bcrypt.compare(oldPassword, user.password).then(async (match) => {
+        if (!match) res.json({error: "Wrong Password!"}) //if (something) res.json{error;}
+
+        bcrypt.hash(newPassword, 10).then(async (hash) => {
+            await Users.update({password: hash},{where: {username : req.user.username }});
+            res.json("password updated");
+        });
+    })
 });
 
 module.exports = router;
